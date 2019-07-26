@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
+_GITPROMPT_PS1LEN_PL="$(dirname "$(realpath "${BASH_SOURCE[0]}")")/ps1len.pl"
+
 function async_run() {
   {
     eval "$@" &> /dev/null
@@ -600,86 +602,15 @@ function updatePrompt() {
   command rm "${GIT_INDEX_PRIVATE}" 2>/dev/null
 
   # Expand variables in PS1 so we know the column count
-  dbg=/dev/pts/3
+  #dbg=/dev/pts/3
   wd="${PWD/${HOME}/\~}"
-  PS1="${PS1/\\w/${wd}}"
-  PS1="${PS1/\$\{GIT_BRANCH\}/${GIT_BRANCH}}"
+  testps1="${PS1/\\w/${wd}}"
+  testps1="${testps1/\$\{GIT_BRANCH\}/${GIT_BRANCH}}"
+  len="$("${_GITPROMPT_PS1LEN_PL}" <<<"$testps1")"
 
-  echo "Checking for line break in >>" > $dbg
-  echo ${PS1} > $dbg
-  echo "<<" > $dbg
-
-  # Find out if there is a line break in the middle of a \[..\] escape sequence
-  if [[ $COLUMNS -gt 1 && ${#PS1} -gt $COLUMNS ]]; then
-    col="$(( "$COLUMNS" - 1 ))"   # last char on the screen
-
-    # States.  All are single characters.
-    state_waiting=w
-    state_saw_backslash='/'       # Backslash is the very last thing on the line
-    state_saw_rbrak=']'
-    state_saw_rbrak_backslash=')' # Done if we see this while moving left
-    state_saw_lbrak='['
-    state_saw_lbrak_backslash='('
-
-    state=$state_waiting
-
-    while [[ $col -gt 0 ]]; do
-      char="${PS1:${col}:1}"
-      case "$state$char" in
-        "$state_waiting"']')    state=$state_saw_rbrak
-                                ;;
-
-        "$state_waiting"'[')    state=$state_saw_lbrak
-                                ;;
-
-        "$state_waiting\\")     state=$state_saw_backslash
-                                ;;
-
-        "$state_waiting"*)      # do nothing
-                                ;;
-
-        "${state_saw_rbrak}\\") state=$state_saw_rbrak_backslash
-                                break
-                                ;;
-
-        "${state_saw_rbrak}"*)  state=$state_waiting
-                                ;;
-
-        "${state_saw_lbrak}\\") state=$state_saw_lbrak_backslash
-                                break
-                                ;;
-
-        "${state_saw_lbrak}"*)  state=$state_waiting
-                                ;;
-
-      esac
-
-      col="$(( "$col" - 1 ))"
-    done
-
-    # If the last column is at a backslash, add one character
-    if [[ $state = $state_saw_backslash ]]; then
-      state=$state_saw_lbrak_backslash
-      col="$(( "$COLUMNS" - 1 ))"
-    fi
-
-    # If the last column is in the middle of an escape sequence,
-    # add spaces to move that sequence onto the next row.
-    if [[ $state = $state_saw_lbrak_backslash ]]; then
-      spaces_needed="$(( "$COLUMNS" - "$col" ))"
-      echo "Adding $spaces_needed spaces" > "$dbg"
-      newps1="${PS1:0:${col}}"  # col is the index of the \ in \[ , and so
-                                # is the number of characters before the \ .
-      while [[ $spaces_needed -gt 0 ]]; do
-        newps1="${newps1} "
-        spaces_needed="$(( "$spaces_needed" - 1 ))"
-      done
-
-      newps1="${newps1}${PS1:${col}}"
-
-      PS1="$newps1"
-    fi
-
+  # Add a line break if it's too long (arbitrary hack)
+  if [[ ${len} -gt $COLUMNS ]]; then
+    PS1="${PS1/\\w/\\w\\n}"
   fi
 }
 
