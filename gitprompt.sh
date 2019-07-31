@@ -1,7 +1,5 @@
 #!/usr/bin/env bash
 
-_GITPROMPT_PS1LEN_PL="$(dirname "$(realpath "${BASH_SOURCE[0]}")")/ps1len.pl"
-
 function async_run() {
   {
     eval "$@" &> /dev/null
@@ -601,17 +599,9 @@ function updatePrompt() {
   PS1="${NEW_PROMPT//_LAST_COMMAND_INDICATOR_/${LAST_COMMAND_INDICATOR}${ResetColor}}"
   command rm "${GIT_INDEX_PRIVATE}" 2>/dev/null
 
-  # Expand variables in PS1 so we know the column count
-  #dbg=/dev/pts/3
-  wd="${PWD/${HOME}/\~}"
-  testps1="${PS1/\\w/${wd}}"
-  testps1="${testps1/\$\{GIT_BRANCH\}/${GIT_BRANCH}}"
-  len="$("${_GITPROMPT_PS1LEN_PL}" <<<"$testps1")"
-
-  # Add a line break if it's too long (arbitrary hack)
-  if [[ ${len} -gt $COLUMNS ]]; then
-    PS1="${PS1/\\w/\\w\\n}"
-  fi
+  # Add a line break after the working dir in case of paths/branchnames
+  # that are too long (arbitrary hack)
+  PS1="${PS1/\\w/\\w\\n}"
 }
 
 # Helper function that returns virtual env information to be set in prompt
