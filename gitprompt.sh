@@ -591,13 +591,18 @@ function updatePrompt() {
     fi
     __add_status        "${ResetColor}${GIT_PROMPT_SUFFIX}"
 
-    NEW_PROMPT="$(gp_add_virtualenv_to_prompt)${PROMPT_START}$(${prompt_callback})${STATUS_PREFIX}${STATUS}${PROMPT_END}"
+    #NEW_PROMPT="$(gp_add_virtualenv_to_prompt)${PROMPT_START}$(${prompt_callback})${STATUS_PREFIX}${STATUS}${PROMPT_END}"
+    NEW_PROMPT="$(gp_add_virtualenv_to_prompt)$(${prompt_callback})${STATUS_PREFIX}${STATUS}${PROMPT_START}${PROMPT_END}"
   else
     NEW_PROMPT="${EMPTY_PROMPT}"
   fi
 
   PS1="${NEW_PROMPT//_LAST_COMMAND_INDICATOR_/${LAST_COMMAND_INDICATOR}${ResetColor}}"
   command rm "${GIT_INDEX_PRIVATE}" 2>/dev/null
+
+  # Add a line break after the working dir in case of paths/branchnames
+  # that are too long (arbitrary hack)
+  #PS1="${PS1/\\w/\\w\\n}"
 }
 
 # Helper function that returns virtual env information to be set in prompt
